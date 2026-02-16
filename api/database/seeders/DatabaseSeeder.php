@@ -18,12 +18,18 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-       'username' => 'Test User', // <--- CAMBIAR 'name' POR 'username'
-    'email' => 'test@example.com',
+            'username' => 'Test User', // <--- CAMBIAR 'name' POR 'username'
+            'email' => 'test@example.com',
         ]);
 
         $this->call([
-        MicroPacketSeeder::class,
-    ]);
+            UsersTableSeeder::class,
+            CategoriesTableSeeder::class,
+            RequestsTableSeeder::class,
+            MicroPackagesTableSeeder::class,
+            ProposalsTableSeeder::class,
+            OrdersTableSeeder::class,
+            ReviewsTableSeeder::class,
+        ]);
     }
 }
