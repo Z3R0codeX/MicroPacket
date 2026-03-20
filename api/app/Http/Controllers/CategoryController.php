@@ -24,30 +24,30 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+
+       if ($request->user()->role !== 'admin') {
+        return response()->json(['message' => 'No tienes permiso'], 403);
+    }
+
         $data = $request->validate([
-            'name' => 'required|string|max:50',
-            'img' => 'nullable|string|max:50',
+            'name' => 'required|string|unique:categories,name',
+            'icon' => 'nullable|string'
         ]);
 
         $category = Category::create($data);
         return response()->json($category, 201);
     }
 
-    public function update(Request $request, $id)
-    {
-        $category = Category::find($id);
-        if (! $category) {
-            return response()->json(['message' => 'Not found'], 404);
-        }
+    public function update(Request $request, $id) {
+    $category = Category::findOrFail($id);
+    $data = $request->validate([
+        'name' => 'required|string|unique:categories,name,' . $id . ',id_category',
+        'icon' => 'required|string',
+    ]);
 
-        $data = $request->validate([
-            'name' => 'sometimes|required|string|max:50',
-            'img' => 'nullable|string|max:50',
-        ]);
-
-        $category->update($data);
-        return response()->json($category);
-    }
+    $category->update($data);
+    return response()->json($category);
+}
 
     public function destroy($id)
     {

@@ -20,7 +20,7 @@ return new class extends Migration
         $table->decimal('price', 10, 2);
         $table->integer('delivery_days');
         $table->string('status', 20)->default('active');
-        $table->string('img', 50)->nullable();
+        $table->string('img')->nullable(); 
         $table->timestamps();
         });
     }

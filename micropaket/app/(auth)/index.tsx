@@ -15,68 +15,67 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MyTheme } from '@/constants/theme';
-import * as SecureStore from 'expo-secure-store'; // Opcional: para guardar el token
-import { BASE_URL } from '@/constants/config'; // Importamos la URL base desde config
+import * as SecureStore from 'expo-secure-store'; // Para guardar el token
+import { BASE_URL } from '@/constants/config';
 
-export default function RegisterScreen() {
+export default function LoginIndexScreen() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   
-  // 1. ESTADOS PARA CAPTURAR DATOS
-  const [username, setUsername] = useState('');
+  // 1. ESTADOS PARA EL LOGIN
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 2. FUNCIÓN DE CONEXIÓN CON LARAVEL
-  const handleRegister = async () => {
-    // Validación básica local
-    if (!username || !email || !password) {
-      Alert.alert('Campos incompletos', 'Por favor llena todos los datos para continuar.');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Seguridad', 'La contraseña debe tener al menos 6 caracteres.');
+  // 2. FUNCIÓN DE INICIO DE SESIÓN
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Atención', 'Ingresa tu correo y contraseña.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // NOTA: Reemplaza con tu IP local (ej. 192.168.1.XX)
-      const response = await fetch(`${BASE_URL}/register`, {
+      // Recuerda usar tu IP LOCAL (ej: 192.168.1.XX)
+      const response = await fetch(`${BASE_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          username: username,
-          email: email,
-          password: password,
-          // Eliminamos password_confirmation porque Laravel ya no lo requiere tras tu cambio
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
-
+      console.log(data);
       if (response.ok) {
-        // Registro exitoso
-        Alert.alert('¡Éxito!', `Bienvenido a MicroPacket, ${data.user.name}`);
-        
-        // Opcional: Guardar token si quieres loguearlo de inmediato
-        // await SecureStore.setItemAsync('userToken', data.token);
-        
-        router.replace('/(tabs)'); // Entrar a la app directamente
-      } else {
-        // Errores de validación de Laravel (ej: email ya tomado)
-        const errorMsg = data.errors ? Object.values(data.errors).flat().join('\n') : data.message;
-        Alert.alert('Error', errorMsg || 'No se pudo completar el registro.');
+  // 1. Extraemos los datos con los nombres correctos según tu consola
+  const token = data.token;
+  const userName = data.user.username; // Cambiado de 'name' a 'username'
+
+  // 2. Verificamos que existan antes de guardar para evitar que la app truene
+  if (token && userName) {
+    if (Platform.OS !== 'web') {
+      // Usamos String() por si el token o nombre llegaran como números por error
+      await SecureStore.setItemAsync('userToken', String(token));
+      await SecureStore.setItemAsync('userName', String(userName));
+    } else {
+      localStorage.setItem('userToken', String(token));
+      localStorage.setItem('userName', String(userName));
+    }
+    
+    router.replace('/(tabs)');
+  } else {
+    Alert.alert('Error', 'El servidor no devolvió todos los datos necesarios.');
+  }
+} else {
+        // --- ERROR DE CREDENCIALES ---
+        Alert.alert('Error', data.message || 'Credenciales incorrectas.');
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error de conexión', 'No pudimos contactar con el servidor. Revisa tu conexión.');
+      console.error("ERROR",error);
+      Alert.alert('Error de red', 'No se pudo conectar con el servidor de Laravel.');
     } finally {
       setIsLoading(false);
     }
@@ -90,30 +89,14 @@ export default function RegisterScreen() {
       >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={MyTheme.primary} />
-          </TouchableOpacity>
-
           <View style={styles.header}>
-            <Text style={styles.title}>Crea tu cuenta</Text>
+            <Text style={styles.title}>Bienvenido de nuevo</Text>
             <Text style={styles.subtitle}>
-              Únete a la comunidad de <Text style={styles.brand}>MicroPacket</Text>.
+              Inicia sesión para gestionar tus servicios en <Text style={styles.brand}>MicroPacket</Text>.
             </Text>
           </View>
 
           <View style={styles.form}>
-            {/* NOMBRE */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nombre de Usuario</Text>
-              <TextInput 
-                placeholder="Juan Pérez" 
-                style={styles.input} 
-                placeholderTextColor="#A0A0A0"
-                value={username}
-                onChangeText={setUsername}
-              />
-            </View>
-
             {/* EMAIL */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Correo Electrónico</Text>
@@ -146,24 +129,23 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* BOTÓN CON LOADER */}
             <TouchableOpacity 
-              style={[styles.registerButton, isLoading && { opacity: 0.7 }]} 
-              onPress={handleRegister}
+              style={[styles.loginButton, isLoading && { opacity: 0.7 }]} 
+              onPress={handleLogin}
               disabled={isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color={MyTheme.white} />
               ) : (
-                <Text style={styles.registerButtonText}>Registrarse</Text>
+                <Text style={styles.loginButtonText}>Entrar</Text>
               )}
             </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
-            <TouchableOpacity onPress={() => router.push('./login')}>
+            <TouchableOpacity onPress={() => router.push('./register')}>
               <Text style={styles.footerText}>
-                ¿Ya tienes una cuenta? <Text style={styles.link}>Inicia Sesión</Text>
+                ¿No tienes cuenta? <Text style={styles.link}>Regístrate aquí</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -176,33 +158,29 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: MyTheme.background },
-  scrollContent: { padding: 25, paddingTop: 10 },
-  backButton: { width: 40, height: 40, justifyContent: 'center', marginBottom: 20 },
-  header: { marginBottom: 35 },
+  scrollContent: { padding: 25, justifyContent: 'center', flexGrow: 1 },
+  header: { marginBottom: 40 },
   title: { fontFamily: 'Montserrat-Bold', fontSize: 32, color: MyTheme.primary, marginBottom: 10 },
   subtitle: { fontFamily: 'Inter-Regular', fontSize: 16, color: '#555', lineHeight: 22 },
   brand: { color: MyTheme.accent, fontFamily: 'Montserrat-Bold' },
   form: { marginBottom: 20 },
-  inputGroup: { marginBottom: 18 },
-  label: { fontFamily: 'Inter-Medium', color: MyTheme.primary, marginBottom: 8, fontSize: 14 },
+  inputGroup: { marginBottom: 20 },
+  label: { fontFamily: 'Inter-Medium', color: MyTheme.primary, marginBottom: 8 },
   input: { 
-    backgroundColor: MyTheme.white, 
-    paddingHorizontal: 15, paddingVertical: 12, borderRadius: 12, 
-    fontFamily: 'Inter-Regular', borderWidth: 1, borderColor: '#E0E0E0', 
-    fontSize: 16, color: MyTheme.primary 
+    backgroundColor: MyTheme.white, paddingHorizontal: 15, paddingVertical: 15, 
+    borderRadius: 12, borderWidth: 1, borderColor: '#E0E0E0', fontSize: 16, color: MyTheme.primary 
   },
   passwordContainer: { 
     flexDirection: 'row', alignItems: 'center', backgroundColor: MyTheme.white, 
     borderRadius: 12, borderWidth: 1, borderColor: '#E0E0E0' 
   },
   eyeIcon: { paddingHorizontal: 15 },
-  registerButton: { 
+  loginButton: { 
     backgroundColor: MyTheme.secondary, padding: 18, borderRadius: 15, 
-    alignItems: 'center', marginTop: 15, elevation: 4, shadowColor: MyTheme.secondary,
-    shadowOpacity: 0.3, shadowRadius: 5, shadowOffset: { width: 0, height: 4 }
+    alignItems: 'center', marginTop: 20, elevation: 4 
   },
-  registerButtonText: { fontFamily: 'Montserrat-Bold', color: MyTheme.white, fontSize: 16 },
-  footer: { marginTop: 20, alignItems: 'center' },
-  footerText: { fontFamily: 'Inter-Regular', color: MyTheme.primary, fontSize: 14 },
+  loginButtonText: { fontFamily: 'Montserrat-Bold', color: MyTheme.white, fontSize: 18 },
+  footer: { marginTop: 30, alignItems: 'center' },
+  footerText: { fontFamily: 'Inter-Regular', color: MyTheme.primary },
   link: { color: MyTheme.secondary, fontFamily: 'Inter-Medium' },
 });

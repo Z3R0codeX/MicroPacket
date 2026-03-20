@@ -2,31 +2,34 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
-protected $primaryKey = 'id_user';
+    use HasApiTokens, HasFactory, Notifiable;
+
+    protected $primaryKey = 'id_user';
+
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * Atributos que se pueden asignar masivamente.
      */
     protected $fillable = [
-        'name',
+        'username',
         'email',
         'password',
+        'bio',
+        'img',
+        'seller_rating',
+        'profile_icon',   // Icono personalizado (Ionicons)
+        'profile_color'   // Color de marca del usuario
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Atributos que deben ocultarse en las respuestas JSON.
      */
     protected $hidden = [
         'password',
@@ -34,15 +37,14 @@ protected $primaryKey = 'id_user';
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Conversión de tipos de atributos.
      */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'seller_rating' => 'decimal:2', // Asegura que el rating siempre sea numérico
         ];
     }
 }

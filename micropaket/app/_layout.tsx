@@ -1,82 +1,94 @@
 import { useFonts, Montserrat_700Bold, Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { useEffect, useState, createContext, useContext } from 'react';
+import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MyTheme } from '@/constants/theme';
 
-// Evita que la pantalla de carga se oculte antes de que las fuentes estén listas
+// 1. Creamos el contexto para compartir el estado de auth
+const AuthContext = createContext({
+  signIn: () => {},
+  signOut: () => {},
+  isAuthed: false,
+});
+
+// Hook para usar el contexto en otras pantallas
+export const useAuth = () => useContext(AuthContext);
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // 1. Carga de fuentes para la identidad visual de MicroPacket
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'Montserrat-Bold': Montserrat_700Bold,
     'Montserrat-Regular': Montserrat_400Regular,
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
   });
 
-  // 2. Manejo de la Splash Screen
-  useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
+  const [isReady, setIsReady] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(false);
+  const router = useRouter();
+  const segments = useSegments();
+
+  // Función para verificar sesión (Web y Móvil)
+  const checkAuth = async () => {
+    try {
+      const token = Platform.OS === 'web' 
+        ? localStorage.getItem('user_token') 
+        : await SecureStore.getItemAsync('user_token');
+      
+      setIsAuthed(!!token);
+    } catch (e) {
+      console.error("Error inicializando auth", e);
+    } finally {
+      setIsReady(true);
     }
-  }, [loaded, error]);
+  };
 
-  // Si hay un error crítico en las fuentes, lo registramos
-  if (error) {
-    console.error("Error cargando las fuentes de MicroPacket:", error);
-  }
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
-  // No renderizamos nada hasta que las fuentes estén listas
-  if (!loaded && !error) {
-    return null;
-  }
+  useEffect(() => {
+    if (!isReady || !fontsLoaded) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inWelcome = segments[0] === 'welcome';
+
+    // LÓGICA DE PROTECCIÓN DE RUTAS
+    if (!isAuthed && !inAuthGroup && !inWelcome) {
+      // Si no estoy logueado y trato de entrar a tabs -> al welcome
+      router.replace('/welcome');
+    } else if (isAuthed && (inAuthGroup || inWelcome)) {
+      // Si ya estoy logueado y trato de ir a login/welcome -> a las tabs
+      router.replace('/(tabs)');
+    }
+
+    SplashScreen.hideAsync();
+  }, [isAuthed, isReady, fontsLoaded, segments]);
+
+  if (!fontsLoaded && !fontError) return null;
 
   return (
-    <>
-      {/* Configuramos la barra de estado con tu color primario azul profundo */}
+    <AuthContext.Provider value={{ 
+      isAuthed,
+      signIn: () => setIsAuthed(true), 
+      signOut: async () => {
+        if (Platform.OS === 'web') localStorage.removeItem('user_token');
+        else await SecureStore.deleteItemAsync('user_token');
+        setIsAuthed(false);
+      } 
+    }}>
       <StatusBar style="light" backgroundColor={MyTheme.primary} />
-      
-      <Stack
-        screenOptions={{
-          headerShown: false, // Ocultamos el header por defecto para un look más limpio
-          contentStyle: { backgroundColor: MyTheme.background }, // Color 4: f5fefe
-          animation: 'fade_from_bottom', // Animación suave entre pantallas
-        }}
-      >
-        {/* Pantalla de entrada (donde pondrás el Redirect a Welcome) */}
-        <Stack.Screen name="index" />
-
-        {/* Grupo de Autenticación (Welcome, Login, Register) */}
-        <Stack.Screen 
-          name="(auth)" 
-          options={{ 
-            animation: 'slide_from_right',
-          }} 
-        />
-
-        {/* Grupo Principal de la App (Tabs) */}
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
-            animation: 'fade',
-          }} 
-        />
-
-        {/* Modales u otras pantallas independientes */}
-        <Stack.Screen 
-          name="modal" 
-          options={{ 
-            presentation: 'modal',
-            headerShown: true,
-            headerTitle: 'Información',
-            headerTintColor: MyTheme.primary,
-          }} 
-        />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
+        <Stack.Screen name="index" /> 
       </Stack>
-    </>
+    </AuthContext.Provider>
   );
 }
