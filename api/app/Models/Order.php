@@ -20,6 +20,8 @@ class Order extends Model
         'status',
         'start_day',
         'end_day',
+        'stripe_payment_intent_id',
+        'payment_status',
     ];
 
     public function user()

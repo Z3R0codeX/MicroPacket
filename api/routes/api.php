@@ -13,6 +13,7 @@ use App\Http\Controllers\UserController;
 // Agrega estos si ya creaste los archivos para propuestas y reseñas
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +63,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('categories', CategoryController::class)->except(['index']); 
     Route::apiResource('micro-packages', MicroPackageController::class)->except(['index', 'show']);
     Route::apiResource('orders', OrderController::class);
+    
+    // Payment intent for orders
+    Route::post('orders/{id}/payment-intent', [PaymentController::class, 'createPaymentIntent']);
     
     // Otros recursos de MicroPacket
     Route::apiResource('proposals', ProposalController::class);

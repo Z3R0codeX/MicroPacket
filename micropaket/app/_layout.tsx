@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState, createContext, useContext } from 'react';
 import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import { MyTheme } from '@/constants/theme';
 
 // 1. Creamos el contexto para compartir el estado de auth
@@ -73,22 +74,24 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <AuthContext.Provider value={{ 
-      isAuthed,
-      signIn: () => setIsAuthed(true), 
-      signOut: async () => {
-        if (Platform.OS === 'web') localStorage.removeItem('user_token');
-        else await SecureStore.deleteItemAsync('user_token');
-        setIsAuthed(false);
-      } 
-    }}>
-      <StatusBar style="light" backgroundColor={MyTheme.primary} />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
-        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-        <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
-        <Stack.Screen name="index" /> 
-      </Stack>
-    </AuthContext.Provider>
+    <StripeProvider publishableKey="tu_pk_test_...">
+      <AuthContext.Provider value={{ 
+        isAuthed,
+        signIn: () => setIsAuthed(true), 
+        signOut: async () => {
+          if (Platform.OS === 'web') localStorage.removeItem('user_token');
+          else await SecureStore.deleteItemAsync('user_token');
+          setIsAuthed(false);
+        } 
+      }}>
+        <StatusBar style="light" backgroundColor={MyTheme.primary} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
+          <Stack.Screen name="index" /> 
+        </Stack>
+      </AuthContext.Provider>
+    </StripeProvider>
   );
 }
