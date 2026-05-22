@@ -74,7 +74,7 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <StripeProvider publishableKey="tu_pk_test_...">
+    <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PK || 'tu_pk_test_...'}>
       <AuthContext.Provider value={{ 
         isAuthed,
         signIn: () => setIsAuthed(true), 

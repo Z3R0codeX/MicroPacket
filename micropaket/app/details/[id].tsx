@@ -6,6 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import { useStripe } from '@stripe/stripe-react-native';
 import { MyTheme } from '@/constants/theme';
 import { BASE_URL, STORAGE_URL } from '@/constants/config';
 import { MicroPackage } from '@/constants/types';
@@ -13,6 +14,7 @@ import { MicroPackage } from '@/constants/types';
 export default function ServiceDetails() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [service, setService] = useState<MicroPackage | null>(null);
   const [loading, setLoading] = useState(true);
   const [contracting, setContracting] = useState(false);
@@ -24,6 +26,7 @@ export default function ServiceDetails() {
     try {
       const token = await SecureStore.getItemAsync('user_token');
       
+      // 1. Crear la orden
       const orderResponse = await fetch(`${BASE_URL}/orders`, {
         method: 'POST',
         headers: {
@@ -44,11 +47,56 @@ export default function ServiceDetails() {
       }
 
       const order = await orderResponse.json();
-      
-      router.push({
-        pathname: '/my-checkout',
-        params: { orderId: order.id_order || order.data.id_order },
+      const orderId = order.id_order || order.data?.id_order;
+
+      // 2. Obtener el Payment Intent desde el backend
+      const paymentResponse = await fetch(`${BASE_URL}/orders/${orderId}/payment-intent`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
+
+      if (!paymentResponse.ok) {
+        throw new Error('Error al iniciar el pago');
+      }
+
+      const { client_secret: clientSecret } = await paymentResponse.json();
+
+      // 3. Inicializar el Payment Sheet con Google Pay habilitado
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: 'MicroPacket',
+        paymentIntentClientSecret: clientSecret,
+        allowsDelayedPaymentMethods: true,
+        googlePay: {
+          merchantCountryCode: 'MX',
+          currencyCode: 'MXN',
+          testEnv: true, // Cambiar a false en producción
+        },
+      });
+
+      if (initError) {
+        throw new Error(initError.message);
+      }
+
+      // 4. Presentar el Payment Sheet al usuario
+      const { error: paymentError } = await presentPaymentSheet();
+
+      if (paymentError) {
+        if (paymentError.code === 'Canceled') {
+          // El usuario canceló el pago, no mostramos error
+          return;
+        }
+        throw new Error(paymentError.message);
+      }
+
+      // 5. Pago exitoso
+      Alert.alert(
+        '¡Pago exitoso! 🎉',
+        'Tu servicio ha sido contratado correctamente.',
+        [{ text: 'Aceptar', onPress: () => router.back() }]
+      );
     } catch (error) {
       Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo contratar el servicio');
     } finally {

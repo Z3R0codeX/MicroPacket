@@ -34,6 +34,9 @@ class PaymentController extends Controller
             $paymentIntent = PaymentIntent::create([
                 'amount' => (int)($order->price * 100),
                 'currency' => 'mxn',
+                'automatic_payment_methods' => [
+                    'enabled' => true,
+                ],
                 'metadata' => [
                     'order_id' => $order->id_order,
                 ],
