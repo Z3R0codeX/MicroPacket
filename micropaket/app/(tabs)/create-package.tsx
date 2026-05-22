@@ -98,14 +98,15 @@ export default function CreatePackage() {
 
       if (image) {
         const imgStr = image as string;
-        const filename = imgStr.split('/').pop();
+         const filename = image.split('/').pop();
         const match = /\.(\w+)$/.exec(filename || '');
-        const type = match ? `image/${match[1]}` : `image`;
+        const ext = match ? match[1] : 'jpg';
+        const type = `image/${ext=== 'jpg' ? 'jpeg' : ext}`;
         
         formData.append('img', { 
-          uri: imgStr, 
+          uri: image, 
           name: filename || 'upload.jpg', 
-          type 
+          type: type
         } as any);
       }
 

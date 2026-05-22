@@ -1,14 +1,5 @@
 {
   "expo": {
-    "plugins": [
-      [
-        "@stripe/stripe-react-native",
-        {
-          "merchantIdentifier": "merchant.com.tuapp",
-          "enableGooglePay": true
-        }
-      ]
-    ],
     "name": "micropaket",
     "slug": "micropaket",
     "version": "1.0.0",
@@ -16,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "micropaket",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -27,8 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.z3r0codex.micropaket"
     },
     "web": {
       "output": "static",
@@ -50,11 +40,24 @@
       ],
       "expo-font",
       "expo-secure-store",
-      "@stripe/stripe-react-native"
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.micropaket",
+          "enableGooglePay": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+
+      "eas": {
+        "projectId": "432823f3-d6ec-463a-ac09-3ff6d344c195"
+      }
     }
   }
 }

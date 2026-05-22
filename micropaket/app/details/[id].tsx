@@ -103,7 +103,7 @@ export default function ServiceDetails() {
           <Text style={styles.priceLabel}>Precio total</Text>
           <Text style={styles.priceValue}>${service?.price} MXN</Text>
         </View>
-        <TouchableOpacity style={styles.hireBtn} onPress={() => Alert.alert("Próximamente", "El sistema de pedidos estará listo pronto.")}>
+        <TouchableOpacity style={styles.hireBtn} onPress={}>
           <Text style={styles.hireBtnText}>Contratar</Text>
         </TouchableOpacity>
       </View>

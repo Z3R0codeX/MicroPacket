@@ -111,12 +111,13 @@ export default function EditService() {
       if (image && isNewImage) {
         const filename = image.split('/').pop();
         const match = /\.(\w+)$/.exec(filename || '');
-        const type = match ? `image/${match[1]}` : `image`;
+        const ext = match ? match[1] : 'jpg';
+        const type = `image/${ext=== 'jpg' ? 'jpeg' : ext}`;
         
         formData.append('img', { 
           uri: image, 
           name: filename || 'upload.jpg', 
-          type 
+          type: type
         } as any);
       }
 
