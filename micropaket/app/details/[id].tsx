@@ -5,15 +5,56 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import { MyTheme } from '@/constants/theme';
 import { BASE_URL, STORAGE_URL } from '@/constants/config';
 import { MicroPackage } from '@/constants/types';
 
 export default function ServiceDetails() {
-  const { id } = useLocalSearchParams(); // Obtenemos el ID de la URL
+  const { id } = useLocalSearchParams();
   const router = useRouter();
   const [service, setService] = useState<MicroPackage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [contracting, setContracting] = useState(false);
+
+  const handleContractService = async () => {
+    if (!service) return;
+
+    setContracting(true);
+    try {
+      const token = await SecureStore.getItemAsync('user_token');
+      
+      const orderResponse = await fetch(`${BASE_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_micro_package: service.id_micro_package,
+          price: service.price,
+          start_day: new Date().toISOString().split('T')[0],
+          end_day: new Date(Date.now() + service.delivery_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'in_progress',
+        }),
+      });
+
+      if (!orderResponse.ok) {
+        throw new Error('Error al crear la orden');
+      }
+
+      const order = await orderResponse.json();
+      
+      router.push({
+        pathname: '/my-checkout',
+        params: { orderId: order.id_order || order.data.id_order },
+      });
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo contratar el servicio');
+    } finally {
+      setContracting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchServiceDetail = async () => {
@@ -103,8 +144,16 @@ export default function ServiceDetails() {
           <Text style={styles.priceLabel}>Precio total</Text>
           <Text style={styles.priceValue}>${service?.price} MXN</Text>
         </View>
-        <TouchableOpacity style={styles.hireBtn} onPress={}>
-          <Text style={styles.hireBtnText}>Contratar</Text>
+        <TouchableOpacity 
+          style={[styles.hireBtn, contracting && { opacity: 0.6 }]} 
+          onPress={handleContractService}
+          disabled={contracting}
+        >
+          {contracting ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.hireBtnText}>Contratar</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
